@@ -2,54 +2,56 @@ import pytest
 from sensors.pressure import PressureSensor
 
 @pytest.fixture
-def sample_pressure_data_increasing():
+def pressure_sensor_kosice() -> PressureSensor:
     """
-    Fixture providing sample pressure data with an increasing trend.
-    """
-    return [1010.0, 1012.0, 1015.0]
+    Create a pressure sensor for Kosice.
 
-@pytest.fixture
-def sample_pressure_data_decreasing():
+    Returns:
+        PressureSensor: A pressure sensor for Kosice.
     """
-    Fixture providing sample pressure data with a decreasing trend.
-    """
-    return [1015.0, 1012.0, 1010.0]
+    sensor = PressureSensor(0, "Kosice", source="file", data_file_path="../data/data.json")
+    sensor.read_data()
+    return sensor
 
-@pytest.fixture
-def sample_pressure_data_stable():
+def test_pressure_type(pressure_sensor_kosice: PressureSensor) -> None:
     """
-    Fixture providing sample pressure data with no significant changes.
+    Test if the pressure is numeric.
     """
-    return [1010.0, 1010.0, 1010.0]
+    pressure = pressure_sensor_kosice.get_data()
+    assert isinstance(pressure, (float, int)), "Pressure should be numeric."
 
-def test_pressure_trend_increasing(sample_pressure_data_increasing):
+def test_pressure_range(pressure_sensor_kosice) -> None:
     """
-    Test the detection of an increasing pressure trend.
+    Test if the pressure is in a reasonable range for Earth.
     """
-    pressure_sensor = PressureSensor(sensor_id=3, location="Poprad")
-    trend = pressure_sensor.process_data(sample_pressure_data_increasing)
-    assert trend == "increasing", "Pressure trend detection is incorrect for increasing data."
+    pressure = pressure_sensor_kosice.get_data()
+    assert 800 <= pressure <= 1100, f"Pressure {pressure} hPa is out of typical Earth range!"
 
-def test_pressure_trend_decreasing(sample_pressure_data_decreasing):
+def test_pressure_invalid_location() -> None:
     """
-    Test the detection of a decreasing pressure trend.
+    Test if the pressure sensor raises an exception for an invalid location.
     """
-    pressure_sensor = PressureSensor(sensor_id=3, location="Poprad")
-    trend = pressure_sensor.process_data(sample_pressure_data_decreasing)
-    assert trend == "decreasing", "Pressure trend detection is incorrect for decreasing data."
+    sensor = PressureSensor(0, "Atlantis", source="file", data_file_path="../data/data.json")
+    with pytest.raises(KeyError):
+        sensor.read_data()
 
-def test_pressure_trend_stable(sample_pressure_data_stable):
-    """
-    Test the detection of a stable pressure trend.
-    """
-    pressure_sensor = PressureSensor(sensor_id=3, location="Poprad")
-    trend = pressure_sensor.process_data(sample_pressure_data_stable)
-    assert trend == "stable", "Pressure trend detection is incorrect for stable data."
+def test_pressure_missing_file():
+    sensor = PressureSensor(0, "Kosice", source="file", data_file_path="non_existent.json")
+    with pytest.raises(RuntimeError):
+        sensor.read_data()
 
-def test_pressure_trend_insufficient_data():
+def test_convert_to_psi(pressure_sensor_kosice: PressureSensor) -> None:
     """
-    Test that processing insufficient data raises a ValueError.
+    Test the conversion of pressure from hPa to PSI.
     """
-    pressure_sensor = PressureSensor(sensor_id=3, location="Poprad")
-    with pytest.raises(ValueError, match="Not enough data to determine pressure trend."):
-        pressure_sensor.process_data([1010.0])
+    pressure_sensor_kosice.last_data = 1013.25
+    psi = pressure_sensor_kosice.convert_to_psi()
+    assert psi == pytest.approx(14.6959, rel=1e-3), f"Pressure in PSI {psi} is incorrect."
+
+def test_convert_to_psi_no_data(pressure_sensor_kosice: PressureSensor) -> None:
+    """
+    Test the conversion to PSI when there is no data.
+    """
+    pressure_sensor_kosice.last_data = None
+    psi = pressure_sensor_kosice.convert_to_psi()
+    assert psi is None, "Pressure in PSI should be None when there is no data."
