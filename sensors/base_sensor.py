@@ -9,6 +9,10 @@ class BaseSensor(ABC):
         sensor_id (int): Unique identifier for the sensor.
         location (str): Location where the sensor is deployed.
         status (str): Status of the sensor ('active', 'inactive', etc.).
+        source (str): Source of the sensor data ('file', 'api', etc.).
+        data_file_path (str): Path to the file containing sensor data.
+        api_url (str): URL to fetch sensor data from an API.
+        last_data (Any): Last data read by the sensor.
     """
     
     def __init__(self, sensor_id: int, location: str, status: str = "active", source: str = "file", data_file_path: str = "data/data.json", api_url: str = "") -> None:
@@ -21,7 +25,7 @@ class BaseSensor(ABC):
             status (str): Status of the sensor. Default is 'active'.
             source (str): Source of the sensor data. Default is 'file'.
             data_file_path (str): Path to the file containing sensor data. Default is 'data/sensors_data.json'.
-            api_url (str): URL to fetch sensor data from an API. Default is an empty string.
+            api_url (str): URL to fetch sensor data from an API. Default is an empty string. Recomennded to use a OpenWeatherMapAPI.
         """
         self.sensor_id = sensor_id
         self.location = location
@@ -30,15 +34,6 @@ class BaseSensor(ABC):
         self.data_file_path = data_file_path
         self.api_url = api_url
         self.last_data = None
-
-    def __str__(self) -> str:
-        """
-        Return a string representation of the sensor.
-
-        Returns:
-            str: Description of the sensor.
-        """
-        return f"Sensor ID: {self.sensor_id}, Location: {self.location}, Status: {self.status}"
 
     def get_status(self) -> str:
         """

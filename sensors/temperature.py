@@ -53,3 +53,10 @@ class TemperatureSensor(BaseSensor):
         if self.last_data is None:
             return None
         return self.last_data * 9/5 + 32
+
+    
+    def __str__(self) -> str:
+        """
+        Return a string representation of the sensor.
+        """
+        return f"Temperature in {self.location}: {self.last_data}°C"
